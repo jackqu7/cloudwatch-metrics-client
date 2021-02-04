@@ -75,10 +75,11 @@ class CloudWatchAsyncMetrics:
             if metric_data.get('Timestamp') is None:
                 metric_data['Timestamp'] = datetime.datetime.now()
             cls.setup_client()
-            return await cls.client.put_metric_data(
-                Namespace=cls.namespace,
-                MetricData=[{**metric_data}]
-            )
+            async with cls.client as client:
+                return await client.put_metric_data(
+                    Namespace=cls.namespace,
+                    MetricData=[{**metric_data}]
+                )
         except AttributeError:
             return False
 
@@ -223,11 +224,12 @@ class CloudWatchAsyncMetricReporter:
                     log.debug('Metric data: {}'.format(
                         metric_data[n * CloudWatchAsyncMetricReporter.MAX_METRICS_PER_REPORT:
                                            (n + 1) * CloudWatchAsyncMetricReporter.MAX_METRICS_PER_REPORT]))
-                response = await CloudWatchAsyncMetrics.client.put_metric_data(
-                    Namespace=CloudWatchAsyncMetrics.namespace,
-                    MetricData=metric_data[n * CloudWatchAsyncMetricReporter.MAX_METRICS_PER_REPORT:
-                                           (n + 1) * CloudWatchAsyncMetricReporter.MAX_METRICS_PER_REPORT]
-                )
+                async with CloudWatchAsyncMetrics.client as client:
+                    response = await client.put_metric_data(
+                            Namespace=CloudWatchAsyncMetrics.namespace,
+                            MetricData=metric_data[n * CloudWatchAsyncMetricReporter.MAX_METRICS_PER_REPORT:
+                                                   (n + 1) * CloudWatchAsyncMetricReporter.MAX_METRICS_PER_REPORT]
+                    )
                 if response.get('ResponseMetadata', {}).get('HTTPStatusCode') != 200:
                     log.warning('Failed reporting metrics to CloudWatch; response={}'.format(
                         response
