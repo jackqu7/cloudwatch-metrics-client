@@ -214,7 +214,7 @@ class CloudWatchAsyncMetricReporter:
         return list(filter(None.__ne__, metrics))
 
     async def _report(self):
-        CloudWatchAsyncMetrics.setup_client()
+        import aioboto3
         async with self.lock:
             num_metrics = len(self.metrics) + len(self.statistics)
             metric_data = self._calculate_metrics() + self._calculate_statistics()
@@ -224,7 +224,7 @@ class CloudWatchAsyncMetricReporter:
                     log.debug('Metric data: {}'.format(
                         metric_data[n * CloudWatchAsyncMetricReporter.MAX_METRICS_PER_REPORT:
                                            (n + 1) * CloudWatchAsyncMetricReporter.MAX_METRICS_PER_REPORT]))
-                async with CloudWatchAsyncMetrics.client as client:
+                async with aioboto3.client('cloudwatch') as client:
                     response = await client.put_metric_data(
                             Namespace=CloudWatchAsyncMetrics.namespace,
                             MetricData=metric_data[n * CloudWatchAsyncMetricReporter.MAX_METRICS_PER_REPORT:
